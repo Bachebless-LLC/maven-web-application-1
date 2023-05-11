@@ -1,0 +1,35 @@
+node{
+    def mavenHome = tool name: 'maven3.9.1'
+    stage('1.codeClone'){
+      //bat "git clone https://github.com/Bachebless-LLC/maven-web-application"
+      git 'https://github.com/Bachebless-LLC/maven-web-application-1'
+    }
+    stage('2.MavenBuild'){
+        sh "${mavenHome}/bin/mvn package"
+    }
+    stage('3codeQuality'){
+        sh "${mavenHome}/bin/mvn sonar:sonar"
+ }
+   stage('4UploadArtifacts'){
+    sh "${mavenHome}/bin/mvn deploy"
+ }    
+   stage('5deploy2 uat'){
+    deploy adapters: [tomcat9(credentialsId: 'tomcat-credentials', path: '', url: 'http://100.25.38.45:8177/manager/html')], contextPath: null, war: 'target/*war'
+ }
+  stage('6Manualapproval'){
+    sh "echo 'Application is ready for review' "
+    timeout(time:5, unit: 'HOURS') {
+    input message: 'application ready for deployment, please review and approve'    
+    }
+  }
+   stage('7deploy2prod'){
+    deploy adapters: [tomcat9(credentialsId: 'tomcat-credentials', path: '', url: 'http://100.25.38.45:8177/manager/html')], contextPath: null, war: 'target/*war'
+ }
+   stage('8emailNotify'){
+      emailext body: '''Hello Team,
+      
+Build is done.
+
+LANDMARKTECH''', recipientProviders: [developers(), contributor(), upstreamDevelopers()], subject: 'Build status', to: 'mylandmarktech@gmail.com'
+  }
+}
